@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Financiero - Distribuciones Andina Comercial S.A.S.</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    .tab-btn.active {
+      border-color: #2563eb;
+      color: #2563eb;
+      font-weight: 600;
+      background-color: rgba(37, 99, 235, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-6 font-sans">
+
+  <!-- Header principal -->
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-[var(--border)] gap-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
+          AC
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-[var(--foreground)]">Distribuciones Andina Comercial S.A.S.</h1>
+          <p class="text-sm text-[var(--muted-foreground)]">Cuadro de Mando Financiero Integral (2021 – 2025) | Cifras en Millones COP</p>
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <label class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Año de Análisis:</label>
+      <select id="yearSelect" onchange="updateDashboard(this.value)" class="bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm font-semibold text-[var(--foreground)] focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer">
+        <option value="2021">2021</option>
+        <option value="2022">2022</option>
+        <option value="2023">2023</option>
+        <option value="2024">2024</option>
+        <option value="2025" selected>2025 (Cierre Auditado)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Navegación por pestañas -->
+  <div class="flex overflow-x-auto gap-2 border-b border-[var(--border)] pt-4 pb-1 mt-2 text-sm font-medium">
+    <button onclick="switchTab('resumen')" id="tab-resumen" class="tab-btn active px-4 py-2 rounded-t-lg border-b-2 border-transparent transition-colors">📌 Resumen Ejecutivo</button>
+    <button onclick="switchTab('rentabilidad')" id="tab-rentabilidad" class="tab-btn px-4 py-2 rounded-t-lg border-b-2 border-transparent transition-colors">📈 Rentabilidad & DuPont</button>
+    <button onclick="switchTab('liquidez')" id="tab-liquidez" class="tab-btn px-4 py-2 rounded-t-lg border-b-2 border-transparent transition-colors">💧 Liquidez & Capital de Trabajo</button>
+    <button onclick="switchTab('solvencia')" id="tab-solvencia" class="tab-btn px-4 py-2 rounded-t-lg border-b-2 border-transparent transition-colors">🛡️ Solvencia & Estructura de Capital</button>
+    <button onclick="switchTab('flujo')" id="tab-flujo" class="tab-btn px-4 py-2 rounded-t-lg border-b-2 border-transparent transition-colors">💵 Flujos de Caja & Creación de Valor</button>
+    <button onclick="switchTab('dictamen')" id="tab-dictamen" class="tab-btn px-4 py-2 rounded-t-lg border-b-2 border-transparent transition-colors">🎯 Dictamen Estratégico</button>
+  </div>
+
+  <!-- Contenedores de contenido -->
+  <main class="mt-6">
+
+    <!-- KPI STRIP (Siempre Visible Arriba) -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm">
+        <span class="text-xs font-medium text-[var(--muted-foreground)]">Ventas Netas</span>
+        <div id="kpi-ventas" class="text-xl font-bold mt-1 text-[var(--foreground)]">$120,000M</div>
+        <span id="kpi-ventas-sub" class="text-xs font-semibold text-emerald-600">+11.1% a/a</span>
+      </div>
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm">
+        <span class="text-xs font-medium text-[var(--muted-foreground)]">EBITDA</span>
+        <div id="kpi-ebitda" class="text-xl font-bold mt-1 text-[var(--foreground)]">$12,600M</div>
+        <span id="kpi-ebitda-sub" class="text-xs font-semibold text-blue-600">Margen: 10.50%</span>
+      </div>
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm">
+        <span class="text-xs font-medium text-[var(--muted-foreground)]">Utilidad Neta</span>
+        <div id="kpi-uneta" class="text-xl font-bold mt-1 text-[var(--foreground)]">$6,685M</div>
+        <span id="kpi-uneta-sub" class="text-xs font-semibold text-emerald-600">+22.4% a/a</span>
+      </div>
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm">
+        <span class="text-xs font-medium text-[var(--muted-foreground)]">ROE (Retorno Pat.)</span>
+        <div id="kpi-roe" class="text-xl font-bold mt-1 text-[var(--foreground)]">21.14%</div>
+        <span id="kpi-roe-sub" class="text-xs font-semibold text-indigo-600">ROA: 10.51%</span>
+      </div>
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm">
+        <span class="text-xs font-medium text-[var(--muted-foreground)]">Flujo Operativo (CFO)</span>
+        <div id="kpi-cfo" class="text-xl font-bold mt-1 text-[var(--foreground)]">$7,788M</div>
+        <span id="kpi-cfo-sub" class="text-xs font-semibold text-emerald-600">FCF: $4,288M</span>
+      </div>
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm">
+        <span class="text-xs font-medium text-[var(--muted-foreground)]">Caja Final</span>
+        <div id="kpi-caja" class="text-xl font-bold mt-1 text-[var(--foreground)]">$12,450M</div>
+        <span id="kpi-caja-sub" class="text-xs font-semibold text-emerald-600">+40.2% a/a</span>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 1: RESUMEN EJECUTIVO -->
+    <div id="view-resumen" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Tarjeta de Evolución de Ingresos y Márgenes -->
+        <div class="lg:col-span-2 bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-base text-[var(--foreground)]">Evolución de Ingresos y Desempeño Operativo (2021 - 2025)</h3>
+            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-medium">CAGR Ventas: 10.67%</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead>
+                <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                  <th class="py-2">Métrica ($M COP)</th>
+                  <th class="py-2 text-right">2021</th>
+                  <th class="py-2 text-right">2022</th>
+                  <th class="py-2 text-right">2023</th>
+                  <th class="py-2 text-right">2024</th>
+                  <th class="py-2 text-right font-bold text-blue-600">2025</th>
+                  <th class="py-2 text-right">Var Total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[var(--border)]">
+                <tr>
+                  <td class="py-2.5 font-medium">Ventas Netas</td>
+                  <td class="text-right">$80,000</td>
+                  <td class="text-right">$88,000</td>
+                  <td class="text-right">$97,000</td>
+                  <td class="text-right">$108,000</td>
+                  <td class="text-right font-bold text-blue-600">$120,000</td>
+                  <td class="text-right text-emerald-600 font-semibold">+50.0%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 font-medium">Margen Bruto (%)</td>
+                  <td class="text-right">25.0%</td>
+                  <td class="text-right">25.0%</td>
+                  <td class="text-right">25.0%</td>
+                  <td class="text-right">25.0%</td>
+                  <td class="text-right font-bold text-blue-600">25.0%</td>
+                  <td class="text-right text-gray-500 font-semibold">Estable</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 font-medium">EBIT (Utilidad Operacional)</td>
+                  <td class="text-right">$5,760</td>
+                  <td class="text-right">$6,708</td>
+                  <td class="text-right">$7,815</td>
+                  <td class="text-right">$9,300</td>
+                  <td class="text-right font-bold text-blue-600">$11,000</td>
+                  <td class="text-right text-emerald-600 font-semibold">+91.0%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 font-medium">Margen EBIT (%)</td>
+                  <td class="text-right">7.20%</td>
+                  <td class="text-right">7.62%</td>
+                  <td class="text-right">8.06%</td>
+                  <td class="text-right">8.61%</td>
+                  <td class="text-right font-bold text-blue-600">9.17%</td>
+                  <td class="text-right text-emerald-600 font-semibold">+197 pb</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 font-medium">EBITDA</td>
+                  <td class="text-right">$6,960</td>
+                  <td class="text-right">$8,008</td>
+                  <td class="text-right">$9,215</td>
+                  <td class="text-right">$10,800</td>
+                  <td class="text-right font-bold text-blue-600">$12,600</td>
+                  <td class="text-right text-emerald-600 font-semibold">+81.0%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 font-medium">Utilidad Neta</td>
+                  <td class="text-right">$2,982</td>
+                  <td class="text-right">$3,576</td>
+                  <td class="text-right">$4,385</td>
+                  <td class="text-right">$5,460</td>
+                  <td class="text-right font-bold text-blue-600">$6,685</td>
+                  <td class="text-right text-emerald-600 font-semibold">+124.2%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 font-medium">Margen Neto (%)</td>
+                  <td class="text-right">3.73%</td>
+                  <td class="text-right">4.06%</td>
+                  <td class="text-right">4.52%</td>
+                  <td class="text-right">5.06%</td>
+                  <td class="text-right font-bold text-blue-600">5.57%</td>
+                  <td class="text-right text-emerald-600 font-semibold">+184 pb</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Síntesis Diagnóstica -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 class="font-bold text-base text-[var(--foreground)] mb-3">Diagnóstico Ejecutivo de Desempeño</h3>
+            <div class="space-y-3 text-xs leading-relaxed text-[var(--muted-foreground)]">
+              <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-950">
+                <span class="font-bold text-emerald-800">✅ Apalancamiento Operativo Positivo:</span> Las ventas crecieron al 10.7% anual mientras los gastos operacionales crecieron sólo al 7.5%, expandiendo el margen operacional 197 puntos básicos.
+              </div>
+              <div class="p-3 bg-blue-50 rounded-lg border border-blue-200 text-blue-950">
+                <span class="font-bold text-blue-800">✅ Transformación en Conversión de Caja:</span> En 2021 la empresa enfrentaba el dilema de "vender sin generar caja". En 2025, el Flujo Operativo (\$7.788M) supera con holgura a la Utilidad Neta (\$6.685M).
+              </div>
+              <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200 text-indigo-950">
+                <span class="font-bold text-indigo-800">✅ Capacidad Financiera Fortalecida:</span> La cobertura de intereses pasó de 3.84x a 7.59x, protegiendo a la empresa frente a eventuales volatilidades macroeconómicas.
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-[var(--border)] text-xs font-semibold text-blue-600 flex justify-between">
+            <span>Calificación Global de Salud:</span>
+            <span class="bg-emerald-600 text-white px-2 py-0.5 rounded">SOBRESALIENTE (A+)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2: RENTABILIDAD & DUPONT -->
+    <div id="view-rentabilidad" class="hidden space-y-6">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+        <h3 class="font-bold text-lg text-[var(--foreground)] mb-1">Descomposición DuPont Tripartita (ROE = Margen × Rotación × Apalancamiento)</h3>
+        <p class="text-xs text-[var(--muted-foreground)] mb-6">Identifica las palancas que impulsan la rentabilidad patrimonial de los socios.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+          <div class="p-4 bg-blue-50 rounded-xl border border-blue-200">
+            <span class="text-xs uppercase font-semibold text-blue-700">Margen Neto (Eficiencia)</span>
+            <div id="dp-margin" class="text-2xl font-bold text-blue-900 mt-2">5.57%</div>
+            <span class="text-xs text-blue-600">Utilidad Neta / Ventas</span>
+          </div>
+          <div class="p-4 bg-teal-50 rounded-xl border border-teal-200">
+            <span class="text-xs uppercase font-semibold text-teal-700">Rotación Activos (Eficacia)</span>
+            <div id="dp-turnover" class="text-2xl font-bold text-teal-900 mt-2">1.89x</div>
+            <span class="text-xs text-teal-600">Ventas / Activos Totales</span>
+          </div>
+          <div class="p-4 bg-purple-50 rounded-xl border border-purple-200">
+            <span class="text-xs uppercase font-semibold text-purple-700">Multiplicador Capital (Riesgo)</span>
+            <div id="dp-leverage" class="text-2xl font-bold text-purple-900 mt-2">2.01x</div>
+            <span class="text-xs text-purple-600">Activos / Patrimonio</span>
+          </div>
+          <div class="p-4 bg-emerald-100 rounded-xl border border-emerald-300">
+            <span class="text-xs uppercase font-bold text-emerald-800">ROE Resultante</span>
+            <div id="dp-roe" class="text-2xl font-extrabold text-emerald-950 mt-2">21.14%</div>
+            <span class="text-xs text-emerald-700 font-medium">Rentabilidad para Accionistas</span>
+          </div>
+        </div>
+
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg text-xs text-gray-700 leading-relaxed border border-gray-200">
+          <span class="font-bold text-gray-900">Lectura Técnica DuPont:</span> El crecimiento del ROE desde 16.58% en 2021 hasta 21.14% en 2025 es de <strong>alta calidad estructural</strong>: no fue originado por un sobre-endeudamiento (el multiplicador bajó de 2.13x a 2.01x), sino estrictamente por una <strong>mayor eficiencia operativa neta</strong> (el margen neto subió de 3.73% a 5.57%), manteniendo constante una sólida rotación de activos (~1.9x).
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 3: LIQUIDEZ & CAPITAL DE TRABAJO -->
+    <div id="view-liquidez" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm">
+          <span class="text-xs font-semibold text-[var(--muted-foreground)]">Días de Cartera (DSO)</span>
+          <div id="liq-dso" class="text-2xl font-bold text-amber-600 mt-1">43.0 días</div>
+          <span class="text-xs text-emerald-600 font-medium">↓ -7.0 días vs 2021</span>
+        </div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm">
+          <span class="text-xs font-semibold text-[var(--muted-foreground)]">Días de Inventario (DIO)</span>
+          <div id="liq-dio" class="text-2xl font-bold text-blue-600 mt-1">58.0 días</div>
+          <span class="text-xs text-emerald-600 font-medium">↓ -7.0 días vs 2021</span>
+        </div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm">
+          <span class="text-xs font-semibold text-[var(--muted-foreground)]">Días de Proveedores (DPO)</span>
+          <div id="liq-dpo" class="text-2xl font-bold text-purple-600 mt-1">45.0 días</div>
+          <span class="text-xs text-emerald-600 font-medium">↑ +5.0 días de crédito</span>
+        </div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-sm">
+          <span class="text-xs font-semibold text-[var(--muted-foreground)]">Ciclo Conversión Efectivo (CCC)</span>
+          <div id="liq-ccc" class="text-2xl font-bold text-emerald-600 mt-1">56.0 días</div>
+          <span class="text-xs text-emerald-600 font-medium">↓ -9.0 días liberados</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Ratios de Liquidez -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+          <h4 class="font-bold text-sm text-[var(--foreground)] mb-3">Solidez de Corto Plazo</h4>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span>Razón Corriente (Activo Corr. / Pasivo Corr.)</span>
+                <span id="liq-rc" class="text-blue-600">2.14x</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-blue-600 h-2 rounded-full" style="width: 85%"></div>
+              </div>
+              <span class="text-[11px] text-[var(--muted-foreground)]">Benchmark óptimo: 1.5x - 2.0x (Excelente holgura)</span>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span>Prueba Ácida (Sin inventarios)</span>
+                <span id="liq-pa" class="text-teal-600">1.41x</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-teal-600 h-2 rounded-full" style="width: 70%"></div>
+              </div>
+              <span class="text-[11px] text-[var(--muted-foreground)]">Benchmark óptimo: &gt; 1.0x (Cubre pasivos corrientes sin liquidar inventario)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KTNO y Productividad -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+          <h4 class="font-bold text-sm text-[var(--foreground)] mb-3">Capital de Trabajo Neto Operativo (KTNO)</h4>
+          <p class="text-xs text-[var(--muted-foreground)] mb-4">KTNO = Cartera + Inventarios - Proveedores</p>
+          <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 mb-2">
+            <span class="text-xs font-medium text-gray-700">Monto KTNO Invertido:</span>
+            <span id="liq-ktno" class="text-base font-bold text-gray-900">$17,342M</span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <span class="text-xs font-medium text-gray-700">Productividad del KTNO (PKT):</span>
+            <span id="liq-pkt" class="text-base font-bold text-emerald-700">14.45% de las ventas</span>
+          </div>
+          <p class="text-[11px] text-[var(--muted-foreground)] mt-3">Una menor proporción de KTNO frente a ventas indica que el crecimiento comercial demanda cada vez menos absorción de caja.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 4: SOLVENCIA & ESTRUCTURA DE CAPITAL -->
+    <div id="view-solvencia" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+          <h4 class="text-xs font-semibold text-[var(--muted-foreground)] uppercase">Nivel de Endeudamiento Total</h4>
+          <div id="sol-end" class="text-3xl font-extrabold text-blue-600 mt-2">50.26%</div>
+          <p class="text-xs text-[var(--muted-foreground)] mt-2">Pasivos Totales: $31,961M sobre Activos de $63,588M. Estructura balanceada (50% fondos externos / 50% patrimonio).</p>
+        </div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+          <h4 class="text-xs font-semibold text-[var(--muted-foreground)] uppercase">Cobertura de Intereses (EBIT / Gto. Fin.)</h4>
+          <div id="sol-cob" class="text-3xl font-extrabold text-emerald-600 mt-2">7.59x</div>
+          <p class="text-xs text-[var(--muted-foreground)] mt-2">La empresa genera \$7.59 de utilidad operativa por cada \$1.00 de interés financiero a pagar. Riesgo de default insignificante.</p>
+        </div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+          <h4 class="text-xs font-semibold text-[var(--muted-foreground)] uppercase">Razón Deuda Financiera / EBITDA</h4>
+          <div id="sol-debitda" class="text-3xl font-extrabold text-indigo-600 mt-2">1.50x</div>
+          <p class="text-xs text-[var(--muted-foreground)] mt-2">Deuda financiera total ($18,900M) vs EBITDA ($12,600M). Estándar bancario &lt; 3.0x: Capacidad de apalancamiento intacta.</p>
+        </div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+        <h4 class="font-bold text-sm text-[var(--foreground)] mb-3">Evolución de la Composición del Financiamiento</h4>
+        <div class="grid grid-cols-5 gap-2 text-center text-xs">
+          <div class="p-3 bg-gray-50 rounded border border-gray-200">
+            <span class="font-bold">2021</span>
+            <div class="text-gray-600 mt-1">Pasivos: 53.1%</div>
+            <div class="text-emerald-700 font-semibold">Patrimonio: 46.9%</div>
+          </div>
+          <div class="p-3 bg-gray-50 rounded border border-gray-200">
+            <span class="font-bold">2022</span>
+            <div class="text-gray-600 mt-1">Pasivos: 52.7%</div>
+            <div class="text-emerald-700 font-semibold">Patrimonio: 47.3%</div>
+          </div>
+          <div class="p-3 bg-gray-50 rounded border border-gray-200">
+            <span class="font-bold">2023</span>
+            <div class="text-gray-600 mt-1">Pasivos: 52.1%</div>
+            <div class="text-emerald-700 font-semibold">Patrimonio: 47.9%</div>
+          </div>
+          <div class="p-3 bg-gray-50 rounded border border-gray-200">
+            <span class="font-bold">2024</span>
+            <div class="text-gray-600 mt-1">Pasivos: 51.6%</div>
+            <div class="text-emerald-700 font-semibold">Patrimonio: 48.4%</div>
+          </div>
+          <div class="p-3 bg-blue-50 rounded border border-blue-200">
+            <span class="font-bold text-blue-900">2025</span>
+            <div class="text-blue-800 mt-1">Pasivos: 50.3%</div>
+            <div class="text-emerald-700 font-bold">Patrimonio: 49.7%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 5: FLUJOS DE CAJA -->
+    <div id="view-flujo" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+          <h4 class="font-bold text-sm text-[var(--foreground)] mb-3">Desglose de Flujos de Caja (2021 vs 2025)</h4>
+          <table class="w-full text-xs text-left">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
+                <th class="py-2">Actividad de Caja ($M)</th>
+                <th class="py-2 text-right">2021</th>
+                <th class="py-2 text-right font-bold text-blue-600">2025</th>
+                <th class="py-2 text-right">Variación</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[var(--border)]">
+              <tr>
+                <td class="py-2 font-medium">Actividades de Operación (CFO)</td>
+                <td class="text-right text-emerald-600">$2,212</td>
+                <td class="text-right font-bold text-emerald-700">$7,788</td>
+                <td class="text-right text-emerald-700 font-semibold">+$5,576M</td>
+              </tr>
+              <tr>
+                <td class="py-2 font-medium">Actividades de Inversión (CFI / CAPEX)</td>
+                <td class="text-right text-red-600">-$2,500</td>
+                <td class="text-right font-bold text-red-700">-$3,500</td>
+                <td class="text-right text-red-600">Expansión CAPEX</td>
+              </tr>
+              <tr class="bg-blue-50/50">
+                <td class="py-2 font-bold text-blue-900">= Flujo de Caja Libre (FCF)</td>
+                <td class="text-right font-bold text-red-600">-$288</td>
+                <td class="text-right font-bold text-blue-700">+$4,288</td>
+                <td class="text-right text-emerald-700 font-bold">Generación neta</td>
+              </tr>
+              <tr>
+                <td class="py-2 font-medium">Actividades de Financiación (CFF)</td>
+                <td class="text-right text-gray-600">-$1,472</td>
+                <td class="text-right font-bold text-gray-800">-$720</td>
+                <td class="text-right text-gray-600">Pago de Deuda & Div.</td>
+              </tr>
+              <tr class="font-bold border-t-2 border-[var(--border)]">
+                <td class="py-2 text-[var(--foreground)]">Caja Final al Cierre</td>
+                <td class="text-right text-gray-700">$740</td>
+                <td class="text-right text-emerald-700 text-sm">$12,450</td>
+                <td class="text-right text-emerald-700">16.8x vs 2021</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <h4 class="font-bold text-sm text-[var(--foreground)] mb-3">Política de Retorno al Accionista (Dividendos)</h4>
+            <div class="space-y-3 text-xs text-[var(--muted-foreground)]">
+              <p>• <strong>2021:</strong> \$0 dividendos distribuidos debido a la restricción inicial de liquidez y recomposición del KTNO.</p>
+              <p>• <strong>2022 - 2024:</strong> Pago creciente de dividendos (\$894M en 2022, \$1.316M en 2023, \$1.911M en 2024).</p>
+              <p>• <strong>2025:</strong> Se pagaron <strong>\$2.340M en dividendos</strong> (un Payout del 35.0% de la utilidad neta), dejando <strong>\$4.345M</strong> en resultados acumulados para reinversión patrimonial.</p>
+            </div>
+          </div>
+          <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-xs text-emerald-950 mt-4">
+            <span class="font-bold text-emerald-800">Sostenibilidad:</span> El pago de dividendos en 2025 (\$2.340M) está cubierto 1.83 veces por el Flujo de Caja Libre generado (\$4.288M), sin necesidad de endeudarse para retribuir a los socios.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 6: DICTAMEN ESTRATÉGICO -->
+    <div id="view-dictamen" class="hidden space-y-6">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+        <h3 class="font-bold text-base text-[var(--foreground)] mb-4">Matriz de Conclusiones y Plan de Acción Financiero-Estratégico</h3>
+        <div class="space-y-4">
+          <div class="p-4 border border-[var(--border)] rounded-xl">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+              <h4 class="font-bold text-sm text-[var(--foreground)]">1. Consolidación del Modelo Comercial & Diferenciación</h4>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)] leading-relaxed">
+              Andina Comercial demostró que mantener un margen bruto plano del 25.0% compitiendo por rapidez de entrega, amplio portafolio de marcas y soporte técnico (en vez de guerra de precios) es altamente rentable en el sector B2B. Se recomienda continuar potenciando el canal de comercio digital B2B para mantener la escala comercial con bajo incremento de costos administrativos.
+            </p>
+          </div>
+
+          <div class="p-4 border border-[var(--border)] rounded-xl">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+              <h4 class="font-bold text-sm text-[var(--foreground)]">2. Eficiencia en Gestión de Inventarios y Cartera</h4>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)] leading-relaxed">
+              La reducción del Ciclo de Efectivo de 65.0 a 56.4 días liberó recursos significativos. No obstante, mantener 58 días en inventario en productos tecnológicos conlleva riesgo de obsolescencia. Se aconseja implementar modelos de abastecimiento automatizados (Just-in-Time para líneas de baja rotación) y descuentos por pronto pago dinámicos.
+            </p>
+          </div>
+
+          <div class="p-4 border border-[var(--border)] rounded-xl">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+              <h4 class="font-bold text-sm text-[var(--foreground)]">3. Estructura de Capital y Aprovechamiento de Capacidad Financiera</h4>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)] leading-relaxed">
+              Con un ratio Deuda/EBITDA de 1.50x y una cobertura de intereses de 7.59x, la compañía cuenta con capacidad de endeudamiento no utilizada. Esta holgura permite financiar de forma segura expansiones en centros logísticos regionales o adquisición de distribuidores locales sin alterar la estabilidad crediticia.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const dataByYear = {
+      "2021": {
+        ventas: "$80,000M", ventasSub: "Año Base",
+        ebitda: "$6,960M", ebitdaSub: "Margen: 8.70%",
+        uneta: "$2,982M", unetaSub: "Margen Neto: 3.73%",
+        roe: "16.58%", roeSub: "ROA: 7.77%",
+        cfo: "$2,212M", cfoSub: "FCF: -$288M",
+        caja: "$740M", cajaSub: "Saldo Inicial: $2,500M",
+        dpMargin: "3.73%", dpTurnover: "2.08x", dpLeverage: "2.13x", dpRoe: "16.58%",
+        dso: "50.0 días", dio: "65.0 días", dpo: "40.0 días", ccc: "75.0 días",
+        rc: "1.92x", pa: "1.05x", ktno: "$15,069M", pkt: "18.84%",
+        end: "53.15%", cob: "3.84x", debitda: "1.80x"
+      },
+      "2022": {
+        ventas: "$88,000M", ventasSub: "+10.0% a/a",
+        ebitda: "$8,008M", ebitdaSub: "Margen: 9.10%",
+        uneta: "$3,576M", unetaSub: "+19.9% a/a",
+        roe: "17.31%", roeSub: "ROA: 8.18%",
+        cfo: "$4,701M", cfoSub: "FCF: +$1,901M",
+        caja: "$3,233M", cajaSub: "+336.9% a/a",
+        dpMargin: "4.06%", dpTurnover: "2.01x", dpLeverage: "2.11x", dpRoe: "17.31%",
+        dso: "48.0 días", dio: "63.0 días", dpo: "42.0 días", ccc: "69.0 días",
+        rc: "1.97x", pa: "1.15x", ktno: "$15,370M", pkt: "17.47%",
+        end: "52.71%", cob: "4.19x", debitda: "1.75x"
+      },
+      "2023": {
+        ventas: "$97,000M", ventasSub: "+10.2% a/a",
+        ebitda: "$9,215M", ebitdaSub: "Margen: 9.50%",
+        uneta: "$4,385M", unetaSub: "+22.6% a/a",
+        roe: "18.48%", roeSub: "ROA: 8.85%",
+        cfo: "$5,297M", cfoSub: "FCF: +$2,297M",
+        caja: "$5,866M", cajaSub: "+81.4% a/a",
+        dpMargin: "4.52%", dpTurnover: "1.96x", dpLeverage: "2.09x", dpRoe: "18.48%",
+        dso: "46.0 días", dio: "62.0 días", dpo: "43.0 días", ccc: "65.0 días",
+        rc: "2.02x", pa: "1.23x", ktno: "$16,012M", pkt: "16.51%",
+        end: "52.10%", cob: "5.04x", debitda: "1.70x"
+      },
+      "2024": {
+        ventas: "$108,000M", ventasSub: "+11.3% a/a",
+        ebitda: "$10,800M", ebitdaSub: "Margen: 10.00%",
+        uneta: "$5,460M", unetaSub: "+24.5% a/a",
+        roe: "20.01%", roeSub: "ROA: 9.70%",
+        cfo: "$6,513M", cfoSub: "FCF: +$3,313M",
+        caja: "$8,882M", cajaSub: "+51.4% a/a",
+        dpMargin: "5.06%", dpTurnover: "1.92x", dpLeverage: "2.06x", dpRoe: "20.01%",
+        dso: "45.0 días", dio: "60.0 días", dpo: "45.0 días", ccc: "60.0 días",
+        rc: "2.06x", pa: "1.31x", ktno: "$16,644M", pkt: "15.41%",
+        end: "51.55%", cob: "6.20x", debitda: "1.60x"
+      },
+      "2025": {
+        ventas: "$120,000M", ventasSub: "+11.1% a/a",
+        ebitda: "$12,600M", ebitdaSub: "Margen: 10.50%",
+        uneta: "$6,685M", unetaSub: "+22.4% a/a",
+        roe: "21.14%", roeSub: "ROA: 10.51%",
+        cfo: "$7,788M", cfoSub: "FCF: +$4,288M",
+        caja: "$12,450M", cajaSub: "+40.2% a/a",
+        dpMargin: "5.57%", dpTurnover: "1.89x", dpLeverage: "2.01x", dpRoe: "21.14%",
+        dso: "43.0 días", dio: "58.0 días", dpo: "45.0 días", ccc: "56.0 días",
+        rc: "2.14x", pa: "1.41x", ktno: "$17,342M", pkt: "14.45%",
+        end: "50.26%", cob: "7.59x", debitda: "1.50x"
+      }
+    };
+
+    function updateDashboard(year) {
+      const d = dataByYear[year];
+      if (!d) return;
+
+      document.getElementById('kpi-ventas').innerText = d.ventas;
+      document.getElementById('kpi-ventas-sub').innerText = d.ventasSub;
+      document.getElementById('kpi-ebitda').innerText = d.ebitda;
+      document.getElementById('kpi-ebitda-sub').innerText = d.ebitdaSub;
+      document.getElementById('kpi-uneta').innerText = d.uneta;
+      document.getElementById('kpi-uneta-sub').innerText = d.unetaSub;
+      document.getElementById('kpi-roe').innerText = d.roe;
+      document.getElementById('kpi-roe-sub').innerText = d.roeSub;
+      document.getElementById('kpi-cfo').innerText = d.cfo;
+      document.getElementById('kpi-cfo-sub').innerText = d.cfoSub;
+      document.getElementById('kpi-caja').innerText = d.caja;
+      document.getElementById('kpi-caja-sub').innerText = d.cajaSub;
+
+      document.getElementById('dp-margin').innerText = d.dpMargin;
+      document.getElementById('dp-turnover').innerText = d.dpTurnover;
+      document.getElementById('dp-leverage').innerText = d.dpLeverage;
+      document.getElementById('dp-roe').innerText = d.dpRoe;
+
+      document.getElementById('liq-dso').innerText = d.dso;
+      document.getElementById('liq-dio').innerText = d.dio;
+      document.getElementById('liq-dpo').innerText = d.dpo;
+      document.getElementById('liq-ccc').innerText = d.ccc;
+      document.getElementById('liq-rc').innerText = d.rc;
+      document.getElementById('liq-pa').innerText = d.pa;
+      document.getElementById('liq-ktno').innerText = d.ktno;
+      document.getElementById('liq-pkt').innerText = d.pkt;
+
+      document.getElementById('sol-end').innerText = d.end;
+      document.getElementById('sol-cob').innerText = d.cob;
+      document.getElementById('sol-debitda').innerText = d.debitda;
+    }
+
+    function switchTab(tabId) {
+      ['resumen', 'rentabilidad', 'liquidez', 'solvencia', 'flujo', 'dictamen'].forEach(t => {
+        const v = document.getElementById('view-' + t);
+        const b = document.getElementById('tab-' + t);
+        if (v) v.classList.add('hidden');
+        if (b) b.classList.remove('active');
+      });
+
+      const activeView = document.getElementById('view-' + tabId);
+      const activeBtn = document.getElementById('tab-' + tabId);
+      if (activeView) activeView.classList.remove('hidden');
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+  </script>
+</body>
+</html>
